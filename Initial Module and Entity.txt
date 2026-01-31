@@ -1,0 +1,37 @@
+*Job Portal with AI Matching -- Mohammed Thalha M
+
+#### Modules:
+1.     *Job Posting (Employer Posting Jobs)*
+              o   *Use Case*: As an employer, I want to post job openings with descriptions and requirements.
+
+2.     *Job Seeker Profile (Creating and Managing Profiles)*
+              o   *Use Case*: As a job seeker, I need to create a profile with my skills, experience, and resume.
+
+3.     *Application Management (Apply for Jobs)*
+              o   *Use Case*: As a job seeker, I need to apply for jobs I’m interested in.
+
+#### Modules and Basic Fields:
+1.     *Job Posting (Employer Posting Jobs)*
+            o   *JobId* (int)
+            o   *EmployerId* (int)
+            o   *JobTitle* (string)
+            o   *JobDescription* (string)
+            o   *SkillsRequired* (string)
+            o   *Salary* (decimal)
+            o   *Location* (string)
+            o   *JobType* (string - e.g., Full-time, Part-time)
+
+2.     *Job Seeker Profile (Creating and Managing Profiles)*
+            o   *ProfileId* (int)
+            o   *JobSeekerId* (int)
+            o   *Skills* (string)
+            o   *Experience* (string)
+            o   *Education* (string)
+            o   *ResumeUrl* (string)
+
+3.     *Application Management (Apply for Jobs)*
+            o   *ApplicationId* (int)
+            o   *JobSeekerId* (int)
+            o   *JobId* (int)
+            o   *ApplicationDate* (datetime)
+            o   *Status* (string - e.g., Applied, Interviewed, Rejected)
