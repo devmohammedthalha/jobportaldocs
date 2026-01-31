@@ -1,0 +1,140 @@
+Step 1: Visual Studio Setup
+
+    Create Project: Open Visual Studio 2022 > Create New Project > ASP.NET Core Web App (Model-View-Controller).
+          
+          Naming: Name the project JobPortal.Web.
+          
+          Solution: Name the solution JobPortal, bcs we will be adding many projects inside the Job Portal
+
+          Authentication: Change "None" to Individual Accounts. This handles the Identity database for you.
+
+              # By selecting this option, Visual Studio automatically integrates ASP.NET Core Identity into your project. This provides you with a pre-built, secure system for:
+                    -> User Registration and Login.
+                    -> Password hashing and security.
+                    -> Role-based Access Control (RBAC), which is essential for distinguishing between Employers, Job Seekers, and Admins.
+
+What happens after you click "Create"?
+
+    Once the project is generated, you will notice a few specific folders and files that weren't there in a basic template:
+
+          Data/ApplicationDbContext.cs: This is the heart of your database connection. It's already configured to handle user accounts.
+
+          Areas/Identity: This is where the login/register logic lives. (Note: It may be hidden at first; you can "Scaffold" it later to customize the UI with your Bootstrap template).
+
+          appsettings.json: This contains the Connection String that points to your local SQL Server database.
+
+
+Critical Next Step: Enabling Roles
+    By default, Identity creates users, but it doesn't "know" about roles like Employer or JobSeeker yet. To make this enterprise-grade, we need to modify Program.cs to enable Role Management.
+
+    1. Update Program.cs
+          Locate the line where Identity is added and modify it to include .AddRoles<IdentityRole>():
+
+        C#
+        // Change this:
+        builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+        
+        // To this:
+        builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            .AddRoles<IdentityRole>() // This enables Roles!
+            .AddEntityFrameworkStores<ApplicationDbContext>();
+
+    2. The First Migration
+        Before you can run the app, you must create the database tables.
+  
+        Open the Package Manager Console (Tools > NuGet Package Manager).
+        Type: 'Add-Migration Initial' and hit Enter
+        Type: 'Update-Database' and hit Enter.
+
+-----------------------------------------------------------------------x---------------------------------------------------------
+
+
+1. Scaffold the Identity Registration Page
+Right-click on your JobPortal.Web project in Solution Explorer.
+
+Select Add > New Scaffolded Item...
+
+Choose Identity on the left and click Add.
+
+In the window that appears:
+
+Select Account/Register.
+
+Select your ApplicationDbContext from the dropdown.
+
+Click Add.
+
+Visual Studio will now create an Areas/Identity folder. This is where we will modify the logic.
+
+2. Update the Registration Model (Input Model)
+Open Areas/Identity/Pages/Account/Register.cshtml.cs. We need to add a property to capture the user's role choice.
+
+Find the InputModel class inside that file and add a Role field:
+
+C#
+public class InputModel
+{
+    // ... Existing Email/Password fields ...
+
+    [Required]
+    [Display(Name = "Register As")]
+    public string Role { get; set; }
+}
+3. Update the HTML View
+Open Areas/Identity/Pages/Account/Register.cshtml. Find the form and add a dropdown menu so the user can choose their identity.
+
+HTML
+<div class="form-floating mb-3">
+    <select asp-for="Input.Role" class="form-control">
+        <option value="JobSeeker">Job Seeker</option>
+        <option value="Employer">Employer</option>
+    </select>
+    <label asp-for="Input.Role">User Type</label>
+    <span asp-validation-for="Input.Role" class="text-danger"></span>
+</div>
+4. Assign the Role on Success
+Go back to Register.cshtml.cs. Find the OnPostAsync method. Look for the line where the user is created successfully. Right after _userManager.CreateAsync, we tell the system to assign the role.
+
+C#
+var result = await _userManager.CreateAsync(user, Input.Password);
+
+if (result.Succeeded)
+{
+    // Assign the selected role to the user
+    await _userManager.AddToRoleAsync(user, Input.Role);
+    
+    _logger.LogInformation("User created a new account with role.");
+    // ... rest of the redirection logic ...
+}
+5. Initialize the Roles (The Seeder)
+For this to work, the roles "Employer" and "JobSeeker" must actually exist in your database. The best way to do this in an enterprise app is a Data Seeder.
+
+Create a new folder called Data/Seeders and add a class RoleSeeder.cs:
+
+C#
+public static class RoleSeeder
+{
+    public static async Task SeedRolesAsync(IServiceProvider serviceProvider)
+    {
+        var roleManager = serviceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        string[] roles = { "Admin", "Employer", "JobSeeker" };
+
+        foreach (var role in roles)
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+    }
+}
+Then, call this in Program.cs before app.Run():
+
+C#
+using (var scope = app.Services.CreateScope())
+{
+    await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
+}
+The Resulting Architecture
+At this point, you have a system that knows exactly who is who. When someone signs up, they are tagged.
